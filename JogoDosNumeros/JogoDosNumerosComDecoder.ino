@@ -1,21 +1,21 @@
 #define PLAYER_DISPLAY 2
 #define CPU_DISPLAY 1
 
-#define PLAYER_8 8
-#define PLAYER_4 7
-#define PLAYER_2 6
-#define PLAYER_1 5
+#define PLAYER_8 9
+#define PLAYER_4 8
+#define PLAYER_2 7
+#define PLAYER_1 6
 #define PLAYER_BLANK 12
 #define PLAYER_ALL 13
 
-#define CPU_8 4
-#define CPU_4 3
+#define CPU_8 5
+#define CPU_4 4
 #define CPU_2 2
-#define CPU_1 1
+#define CPU_1 3
 #define CPU_BLANK 10
 #define CPU_ALL 11
 
-#define POT_PIN 0
+#define POT_PIN A0
 
 int potValue = 0; 
 
@@ -25,28 +25,35 @@ int cpuDisplayNumber = 0;
 int points = 0;
 int missCounter = 0;
 
-
 long previousMillis = 0; 
 long interval = 3000;
 bool resetTimer = false;
 
 void setup() { 
+  Serial.begin(9600);
   setOutputPins();
-  start();
+  reset();
   cpuPlay();       
+ 
 }
 
 void loop() {
    potValue = analogRead(POT_PIN);
-   playerDisplayNumber = ConvertToDigit(potValue);
-   WriteDigit(playerDisplayNumber, PLAYER_DISPLAY);   
+   analogWrite(3, points);
+   analogWrite(9, missCounter);
+   playerDisplayNumber = map(potValue,0,1023,0,9);
+  
+    
+   writeDigit(playerDisplayNumber, PLAYER_DISPLAY);   
    if (playerDisplayNumber == cpuDisplayNumber)
    {
       points++;
+      Serial.println("Hit! - Score:" + String(points));
       blinkDisplay(CPU_DISPLAY);
       cpuPlay();   
       resetTimer = true;
       interval = interval - 100;
+      Serial.println("New time:" + String(interval));
    }
    else {
     unsigned long currentMillis = millis();
@@ -61,6 +68,7 @@ void loop() {
       previousMillis = currentMillis;     
     }    
    }
+   delay(200);
 }
 
 void setOutputPins()
@@ -78,67 +86,48 @@ void setOutputPins()
   pinMode(CPU_BLANK, OUTPUT);
   pinMode(CPU_ALL, OUTPUT);
 }
-
-void start(){
-  WriteAll(CPU_DISPLAY);
-  WriteAll(PLAYER_DISPLAY);
-  delay(150);
-  WriteNone(CPU_DISPLAY);
-  WriteNone(PLAYER_DISPLAY);
-  delay(150);
-  WriteAll(CPU_DISPLAY);
-  WriteAll(PLAYER_DISPLAY);
-  delay(150);
-  WriteNone(CPU_DISPLAY);
-  WriteNone(PLAYER_DISPLAY);
-  delay(150);
-}
+ 
 
 void cpuPlay() {
-  cpuDisplayNumber = GenerateRamdomNumber();  
-  WriteNone(CPU_DISPLAY);
+  cpuDisplayNumber = generateRamdomNumber();  
+  writeNone(CPU_DISPLAY);
   delay(150);
-  WriteDigit(cpuDisplayNumber, CPU_DISPLAY);
+  writeDigit(cpuDisplayNumber, CPU_DISPLAY);
 }
 
-int ConvertToDigit(int value)
-{
-  return value * 9 / 1000; 
-}
-
-void WriteDigit(int digit, int displayNumber)
+void writeDigit(int digit, int displayNumber)
 {
   switch(digit)
   {
     case 0:
-      WriteZero(displayNumber); 
+      writeZero(displayNumber); 
     break;
     case 1:
-      WriteOne(displayNumber);
+      writeOne(displayNumber);
     break;
     case 2:
-      WriteTwo(displayNumber);
+      writeTwo(displayNumber);
     break;
     case 3:
-     WriteThree(displayNumber);
+      writeThree(displayNumber);
     break;
     case 4:
-     WriteFour(displayNumber);
+      writeFour(displayNumber);
     break;
     case 5:
-     WriteFive(displayNumber);
+      writeFive(displayNumber);
     break;
     case 6:
-      WriteSix(displayNumber);
+      writeSix(displayNumber);
     break;
     case 7:
-     WriteSeven(displayNumber);
+      writeSeven(displayNumber);
     break;
     case 8:
-     WriteEight(displayNumber);
+      writeEight(displayNumber);
     break;
     case 9:
-     WriteNine(displayNumber);
+      writeNine(displayNumber);
     break;
   }
 }
@@ -146,10 +135,10 @@ void WriteDigit(int digit, int displayNumber)
 void blinkDisplay(int displayNumber)
 {
    for(int i = 0; i < 5; i++) {
-    WriteNone(displayNumber);
-    delay(150);
-    WriteAll(displayNumber);
-    delay(150);
+      writeNone(displayNumber);
+      delay(150);
+      writeAll(displayNumber);
+      delay(150);
    }
 }
 
@@ -158,13 +147,15 @@ void checkMiss()
     if (missCounter < 3) {
       cpuPlay();
       missCounter++;
+      Serial.println("Time over");
+      Serial.println("Miss: " + String(missCounter));
     }
     else {
-       GameOver();
+       gameOver();
     } 
 }
 
-void WriteAll(int displayNumber) {
+void writeAll(int displayNumber) {
   if (displayNumber == PLAYER_DISPLAY){
     digitalWrite(PLAYER_ALL, LOW); 
     digitalWrite(PLAYER_BLANK, HIGH); 
@@ -175,23 +166,22 @@ void WriteAll(int displayNumber) {
   }
 }
 
-int GenerateRamdomNumber() {
+int generateRamdomNumber() {
   return random(0, 9);
 }
 
-void WriteNone(int displayNumber){
+void writeNone(int displayNumber){
   if (displayNumber == PLAYER_DISPLAY){
     digitalWrite(PLAYER_BLANK, LOW); 
 	digitalWrite(PLAYER_ALL, HIGH); 
-
   } else {  
     digitalWrite(CPU_BLANK, LOW); 
 	digitalWrite(CPU_ALL, HIGH);
   }
 }
 
-void WriteZero(int displayNumber) {
-    WriteNone(displayNumber);
+void writeZero(int displayNumber) {
+    writeNone(displayNumber);
     if (displayNumber == PLAYER_DISPLAY) {
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -209,8 +199,8 @@ void WriteZero(int displayNumber) {
     }
 }
 
-void WriteOne(int displayNumber) {
-  WriteNone(displayNumber);
+void writeOne(int displayNumber) {
+   writeNone(displayNumber);
    if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -228,8 +218,8 @@ void WriteOne(int displayNumber) {
     }
 }
 
-void WriteTwo(int displayNumber){
-  WriteNone(displayNumber);
+void writeTwo(int displayNumber){
+   writeNone(displayNumber);
    if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -247,8 +237,8 @@ void WriteTwo(int displayNumber){
     }
 }
 
-void WriteThree(int displayNumber){
-  WriteNone(displayNumber);
+void writeThree(int displayNumber){
+   writeNone(displayNumber);
    if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -266,8 +256,8 @@ void WriteThree(int displayNumber){
     }
 }
 
-void WriteFour(int displayNumber) {
-  WriteNone(displayNumber);
+void writeFour(int displayNumber) {
+   writeNone(displayNumber);
    if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -285,8 +275,8 @@ void WriteFour(int displayNumber) {
     }
 }
 
-void WriteFive(int displayNumber) {
-  WriteNone(displayNumber);
+void writeFive(int displayNumber) {
+   writeNone(displayNumber);
    if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -304,8 +294,8 @@ void WriteFive(int displayNumber) {
     }
 }
 
-void WriteSix(int displayNumber) {
-  WriteNone(displayNumber);
+void writeSix(int displayNumber) {
+   writeNone(displayNumber);
    if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -323,8 +313,8 @@ void WriteSix(int displayNumber) {
     }
 }
 
-void WriteSeven(int displayNumber) {
-  WriteNone(displayNumber);
+void writeSeven(int displayNumber) {
+   writeNone(displayNumber);
    if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -342,8 +332,8 @@ void WriteSeven(int displayNumber) {
     }
 }
 
-void WriteEight(int displayNumber){
-  WriteNone(displayNumber);
+void writeEight(int displayNumber){
+   writeNone(displayNumber);
    if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -361,8 +351,8 @@ void WriteEight(int displayNumber){
     }
 }
 
-void WriteNine(int displayNumber) {
-  WriteNone(displayNumber);
+void writeNine(int displayNumber) {
+  writeNone(displayNumber);
   if (displayNumber == PLAYER_DISPLAY){
       digitalWrite(PLAYER_BLANK, HIGH); 
       digitalWrite(PLAYER_ALL, HIGH);
@@ -380,38 +370,39 @@ void WriteNine(int displayNumber) {
     }
 }
 
-void GameOver() {
-  ShowPoints();
+void gameOver() {
+  showPoints();
   interval = 3000;
-  Reset();
+  reset();
   points = 0;
   missCounter = 0;
   resetTimer = true;
   cpuPlay();
 }
 
-void ShowPoints() {
-  
+void showPoints() {
+   Serial.println("Score: " + String(points));
    float fpoints = points;
-   WriteDigit((fpoints / 10), 1); 
-   WriteDigit(fmod(fpoints, 10), 2);   
+   writeDigit((fpoints / 10), 2); 
+   writeDigit(fmod(fpoints, 10), 1);   
    delay(5000);
 }
 
-void Reset(){
-  WriteNone(CPU_DISPLAY);
-  WriteNone(PLAYER_DISPLAY);
+void reset(){
+  Serial.println("New Game");
+  writeNone(CPU_DISPLAY);
+  writeNone(PLAYER_DISPLAY);
   delay(150);
-  WriteAll(CPU_DISPLAY);
-  WriteAll(PLAYER_DISPLAY);
+  writeAll(CPU_DISPLAY);
+  writeAll(PLAYER_DISPLAY);
   delay(150);
-  WriteNone(CPU_DISPLAY);
-  WriteNone(PLAYER_DISPLAY);
+  writeNone(CPU_DISPLAY);
+  writeNone(PLAYER_DISPLAY);
   delay(150);
-  WriteAll(CPU_DISPLAY);
-  WriteAll(PLAYER_DISPLAY);
+  writeAll(CPU_DISPLAY);
+  writeAll(PLAYER_DISPLAY);
   delay(150);
-  WriteNone(CPU_DISPLAY);
-  WriteNone(PLAYER_DISPLAY);
+  writeNone(CPU_DISPLAY);
+  writeNone(PLAYER_DISPLAY);
   delay(150);
 }
